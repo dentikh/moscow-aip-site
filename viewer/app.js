@@ -124,10 +124,13 @@ function popupHtml(props) {
     `<div class="popup-row">источник: ${s.url ? `<a href="${s.url}" target="_blank">${s.source}</a>` : s.source} (${s.date || ""})</div>`).join("");
   const obs = (props.observations || []).slice(-5).reverse().map(o =>
     `<li>${o.date}: ${escapeHtml(o.note)}</li>`).join("");
+  const vest = (props.vestnik || []).map(v =>
+    `<div class="popup-row">📰 ${v.pp} от ${v.date}: ${escapeHtml((v.title || "").slice(0, 90))}${(v.title || "").length > 90 ? "…" : ""}</div>`).join("");
   return `<div class="popup-title">${escapeHtml(props.name)}</div>` +
     `<div class="popup-row">статус: ${STATUS_LABELS[props.status] || props.status}` +
     `${year ? ` · срок: ${year}` : ""}</div>` +
     `<div class="popup-row">зона: ${ZONE_LABELS[props.zone] || props.zone} · тип: ${KIND_LABELS[props.kind] || props.kind}</div>` +
+    (vest || "") +
     (sources || "") +
     (obs ? `<ul class="popup-obs">${obs}</ul>` : "") +
     `<div class="popup-dossier"><a href="${dossierUrl(props)}" target="_blank">📄 Досье</a></div>`;
