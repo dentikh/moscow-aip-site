@@ -129,7 +129,7 @@ function popupHtml(props) {
   return `<div class="popup-title">${escapeHtml(props.name)}</div>` +
     `<div class="popup-row">статус: ${STATUS_LABELS[props.status] || props.status}` +
     `${year ? ` · срок: ${year}` : ""}</div>` +
-    `<div class="popup-row">зона: ${ZONE_LABELS[props.zone] || props.zone} · тип: ${KIND_LABELS[props.kind] || props.kind}</div>` +
+    `<div class="popup-row">зона: ${ZONE_LABELS[props.zone] || String(props.zone).replace(/^city:/, "")} · тип: ${KIND_LABELS[props.kind] || props.kind}</div>` +
     (vest || "") +
     (sources || "") +
     (obs ? `<ul class="popup-obs">${obs}</ul>` : "") +
