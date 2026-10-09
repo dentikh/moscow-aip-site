@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раскладка листов — АИП-монитор</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+<style>
+body { margin: 0; font: 13px/1.4 system-ui, sans-serif; }
+#board { position: absolute; inset: 0; right: 340px; background: #333; }
+#panel { position: absolute; top: 0; right: 0; bottom: 0; width: 330px;
+  background: #fff; padding: 12px; overflow-y: auto; box-shadow: -2px 0 8px rgba(0,0,0,.3); }
+#panel h1 { font-size: 15px; margin: 0 0 8px; }
+#panel label { display: block; margin: 6px 0 2px; font-weight: 600; }
+#panel select, #panel input[type=number] { width: 100%; }
+#tiles { margin: 8px 0; max-height: 220px; overflow-y: auto; }
+#tiles .tl { display: flex; justify-content: space-between; padding: 2px 6px; cursor: pointer;
+  border-radius: 4px; }
+#tiles .tl.sel { background: #ffd54f; }
+.rowbtns button { margin: 2px 4px 2px 0; padding: 3px 8px; cursor: pointer; }
+.crops { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.hint { color: #777; margin-top: 6px; }
+kbd { background: #eee; border-radius: 3px; padding: 0 4px; }
+img.leaflet-image-layer { outline: 1px dashed rgba(255,255,255,.25); }
+img.leaflet-image-layer.sel { outline: 2px solid #ffd54f; }
+</style>
+</head>
+<body>
+<div id="board"></div>
+<div id="panel">
+  <h1>Раскладка листов</h1>
+  <label for="series">Серия:</label>
+  <select id="series"></select>
+  <label>Тайл (клик по карте тоже выбирает):</label>
+  <div id="tiles"></div>
+  <label>Прозрачность ВСЕХ тайлов: <input type="range" id="opacity" min="20" max="100" value="55"></label>
+  <label>Обрезка выбранного, px (лев/верх/прав/низ):</label>
+  <div class="crops">
+    <input type="number" id="cl" placeholder="L">
+    <input type="number" id="ct" placeholder="T">
+    <input type="number" id="cr" placeholder="R">
+    <input type="number" id="cb" placeholder="B">
+  </div>
+  <div class="rowbtns">
+    <button id="apply-crop">Применить обрезку</button>
+    <button id="crop-all">Эту обрезку всем</button>
+  </div>
+  <div class="rowbtns">
+    <button id="save">Сохранить (localStorage)</button>
+    <button id="export">Экспорт layout.json</button>
+    <button id="reset">Сбросить к авто-раскладке</button>
+  </div>
+  <p class="hint">Перетаскивание — мышью. Точная подгонка: <kbd>←↑↓→</kbd> — 1px,
+    с <kbd>Shift</kbd> — 10px. Обрезка показывается пунктиром (clip). После экспорта:
+    <code>py scripts/stitch_by_layout.py layout.json out.png</code></p>
+</div>
+<script src="vendor/leaflet.js"></script>
+<script src="../dist/renders_index.js" onerror="window.RENDERS_INDEX={issues:[]}"></script>
+<script src="layout.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>АИП-монитор Москвы</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+<div id="map"></div>
+<div id="panel" class="panel">
+  <h1>АИП-монитор Москвы</h1>
+  <div id="stats" class="stats"></div>
+  <div class="row">
+    <label for="zone">Зона:</label>
+    <select id="zone"></select>
+  </div>
+  <div id="kinds" class="kinds"></div>
+  <details id="renders-block" class="renders">
+    <summary>Чертежи и рендеры (Вестник)</summary>
+    <div id="series-list" class="series-list"></div>
+    <div id="overlay-controls" class="overlay-controls hidden">
+      <div class="row"><label>Прозрачность <input type="range" id="overlay-opacity" min="10" max="100" value="70"></label></div>
+      <button id="overlay-remove" class="small">Убрать наложение</button>
+      <button id="vector-merge" class="small hidden">Влить вектор в оцифровку</button>
+    </div>
+    <div class="digitize">
+      <div class="legend-sep"></div>
+      <div class="row"><label>Тип элемента: <select id="dig-kind"></select></label></div>
+      <div class="row"><label>Форма: <select id="dig-mode">
+        <option value="line">Линия (дорога/велодорожка)</option>
+        <option value="polygon">Полигон (область)</option>
+      </select></label></div>
+      <div class="row">
+        <button id="dig-start" class="small">Оцифровать поверх чертежа</button>
+        <button id="dig-finish" class="small hidden">Завершить</button>
+        <button id="dig-cancel" class="small hidden">Отмена</button>
+      </div>
+      <div id="dig-hint" class="hint hidden"></div>
+      <div id="dig-features" class="dig-features"></div>
+      <button id="dig-export" class="small">Экспорт GeoJSON</button>
+    </div>
+  </details>
+  <details id="pp-block" class="renders">
+    <summary>Постановления (Вестник)</summary>
+    <div id="pp-list" class="series-list"></div>
+  </details>
+</div>
+<div id="legend" class="legend">
+  <div class="legend-title">Легенда</div>
+  <div id="legend-kinds"></div>
+  <div class="legend-sep"></div>
+  <div class="legend-title">Стадия (форма) · фильтры</div>
+  <div id="legend-filters" class="legend-filters"></div>
+  <div class="legend-sep"></div>
+  <div class="legend-note">Цвет = тип объекта; форма точки = стадия</div>
+</div>
+<div id="gallery" class="gallery hidden">
+  <button id="gallery-close" title="Закрыть">×</button>
+  <div id="gallery-msg" class="hidden">файл недоступен</div>
+  <img id="gallery-img" loading="lazy">
+</div>
+<div id="toast" class="toast hidden"></div>
+<script src="vendor/leaflet.js"></script>
+<script src="../dist/objects.js?v=2026-10-05"></script>
+<script src="../dist/renders_index.js?v=2026-10-05" onerror="window.RENDERS_INDEX={issues:[]}"></script>
+<script src="../dist/pp_index.js?v=2026-10-05" onerror="window.PP_INDEX={issues:[]}"></script>
+<script src="app.js?v=6"></script>
+<script src="renders.js?v=3"></script>
+<script src="pp.js?v=1"></script>
+</body>
+</html>
