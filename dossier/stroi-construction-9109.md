@@ -16,5 +16,5 @@
 - cks2941 (2026-10-03)
 
 ---
-*auto-generated 2026-10-09 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->
