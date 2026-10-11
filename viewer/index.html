@@ -11,6 +11,12 @@
 <div id="panel" class="panel">
   <h1>АИП-монитор Москвы</h1>
   <div id="stats" class="stats"></div>
+  <div class="row search-row">
+    <input id="search" type="search" placeholder="Поиск по названию…"
+           autocomplete="off" spellcheck="false">
+    <button id="search-go" class="small" title="Показать найденные на карте">🔍</button>
+  </div>
+  <div id="search-info" class="hint hidden"></div>
   <div class="row">
     <label for="zone">Зона:</label>
     <select id="zone"></select>
@@ -62,10 +68,10 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 <script src="vendor/leaflet.js"></script>
-<script src="../dist/objects.js?v=2026-10-05"></script>
-<script src="../dist/renders_index.js?v=2026-10-05" onerror="window.RENDERS_INDEX={issues:[]}"></script>
-<script src="../dist/pp_index.js?v=2026-10-05" onerror="window.PP_INDEX={issues:[]}"></script>
-<script src="app.js?v=8"></script>
+<script src="../dist/objects.js?v=2026-10-12"></script>
+<script src="../dist/renders_index.js?v=2026-10-12" onerror="window.RENDERS_INDEX={issues:[]}"></script>
+<script src="../dist/pp_index.js?v=2026-10-12" onerror="window.PP_INDEX={issues:[]}"></script>
+<script src="app.js?v=9"></script>
 <script src="renders.js?v=3"></script>
 <script src="pp.js?v=1"></script>
 </body>

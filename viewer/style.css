@@ -13,6 +13,15 @@ html, body { height: 100%; margin: 0; }
 .row select { width: 100%; }
 .kinds label { display: block; cursor: pointer; }
 
+.search-row { display: flex; gap: 6px; align-items: center; }
+.search-row input[type="search"] {
+  flex: 1; min-width: 0; padding: 4px 8px;
+  border: 1px solid #bbb; border-radius: 6px; font: inherit;
+}
+.search-row button { flex: none; }
+#search-info { color: #1e6b1e; margin: -4px 0 6px; }
+.city-marker { opacity: 0.55; }
+
 .legend {
   position: absolute; bottom: 10px; left: 10px; z-index: 1000;
   background: rgba(255, 255, 255, 0.95); border-radius: 8px;

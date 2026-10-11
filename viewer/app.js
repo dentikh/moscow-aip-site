@@ -58,7 +58,8 @@ function toast(text) {
 const fc = (typeof OBJECTS !== "undefined") ? OBJECTS
   : { type: "FeatureCollection", features: [] };
 
-const state = { kinds: new Set(), zone: "all", statuses: new Set(), year: "all" };
+const state = { kinds: new Set(), zone: "all", statuses: new Set(), year: "all",
+  query: "" };
 const CITY_PREFIX = "city:";  // фоновые объекты «вся Москва» (низкий приоритет)
 
 function isCityZone(f) {
@@ -85,14 +86,15 @@ function shapeSvg(status, color, size = 16) {
     `<path d="${d}" fill="${color}" stroke="#333" stroke-width="1"/></svg>`;
 }
 
-function statusIcon(feature) {
+function statusIcon(feature, city) {
   const p = feature.properties || {};
   const color = statusColor(p.kind, p.status);
+  const size = city ? 10 : 16;
   return L.divIcon({
-    html: shapeSvg(p.status, color),
-    className: "status-marker",
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: shapeSvg(p.status, color, size),
+    className: city ? "status-marker city-marker" : "status-marker",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -153,9 +155,10 @@ function styleFor(feature) {
 
 const geojsonLayer = L.geoJSON(fc, {
   style: styleFor,
-  pointToLayer: (f, latlng) => isCityZone(f)
-    ? L.circleMarker(latlng, styleFor(f))           // фон — лёгкие точки
-    : L.marker(latlng, { icon: statusIcon(f) }),
+  // форма точки = стадия у ВСЕХ объектов, включая фон «вся Москва»
+  // (раньше фон рисовался кружками и стадии на карте не читались)
+  pointToLayer: (f, latlng) =>
+    L.marker(latlng, { icon: statusIcon(f, isCityZone(f)) }),
   onEachFeature: (f, layer) => layer.bindPopup(() => popupHtml(f.properties)),
 }).addTo(map);
 
@@ -163,6 +166,11 @@ for (const f of fc.features) {
   const kind = f.properties.kind;
   if (!kindLayers[kind]) kindLayers[kind] = [];
   kindLayers[kind].push(f);
+}
+
+function matchesQuery(p) {
+  const q = state.query.trim().toLowerCase();
+  return !q || String(p.name || "").toLowerCase().includes(q);
 }
 
 function rebuild() {
@@ -174,14 +182,61 @@ function rebuild() {
     const year = p.plan_years && p.plan_years.end;
     const zoneOk = state.zone === "all" ||
       (state.zone === "cityall" ? isCityZone(f) : p.zone === state.zone);
-    return wanted.has(p.kind) && zoneOk &&
+    return wanted.has(p.kind) && zoneOk && matchesQuery(p) &&
       state.statuses.has(p.status) &&
       (state.year === "all" || (year != null && String(year) === state.year));
   };
   const chosen = fc.features.filter(pass);
+  updateSearchInfo(chosen);
   // низкий приоритет: фоновые city:* добавляются ПЕРВЫМИ (рисуются ниже)
   const ordered = [...chosen.filter(isCityZone), ...chosen.filter(f => !isCityZone(f))];
   geojsonLayer.addData({ type: "FeatureCollection", features: ordered });
+}
+
+/* ---------- Поиск по ключевым словам (название объекта) ---------- */
+function updateSearchInfo(chosen) {
+  const info = document.getElementById("search-info");
+  if (!info) return;
+  const q = state.query.trim();
+  if (!q) { info.classList.add("hidden"); return; }
+  const zoneChosen = chosen.filter(f => state.zone !== "cityall" || isCityZone(f));
+  info.textContent = `найдено: ${zoneChosen.length}`;
+  info.classList.remove("hidden");
+}
+
+function zoomToMatches() {
+  const q = state.query.trim().toLowerCase();
+  if (!q) return;
+  const wanted = new Set(Object.keys(kindLayers).filter(k => state.kinds.has(k)));
+  const pts = [];
+  for (const f of fc.features) {
+    const p = f.properties;
+    if (!wanted.has(p.kind) || !matchesQuery(p)) continue;
+    const g = f.geometry;
+    if (!g) continue;
+    const flat = [];
+    (function walk(c) { Array.isArray(c[0]) ? c.forEach(walk) : flat.push(c); })(g.coordinates);
+    for (const [lon, lat] of flat) {
+      if (lat > 54 && lat < 57 && lon > 35 && lon < 40) pts.push([lat, lon]);
+    }
+  }
+  if (!pts.length) { toast("Ничего не найдено"); return; }
+  map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 16 });
+}
+
+function initSearch() {
+  const input = document.getElementById("search");
+  const btn = document.getElementById("search-go");
+  if (!input) return;
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { state.query = input.value; rebuild(); }, 250);
+  });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); zoomToMatches(); }
+  });
+  if (btn) btn.addEventListener("click", zoomToMatches);
 }
 
 function initPanel() {
@@ -242,7 +297,7 @@ function initLegend() {
 /* ---------- Фильтры в легенде: стадия (формой) + год ввода ---------- */
 function initLegendFilters() {
   const STATUS_SWATCH = {
-    designed: "#fff", construction: "#333", operation: "#8bc34a",
+    designed: "#c9c9c9", construction: "#333", operation: "#8bc34a",
   };
   const box = document.getElementById("legend-filters");
   for (const [status, label] of Object.entries(STATUS_LABELS)) {
@@ -285,6 +340,7 @@ function initLegendFilters() {
 initPanel();
 initLegend();
 initLegendFilters();
+initSearch();
 rebuild();
 if (fc.features.length) {
   map.fitBounds(geojsonLayer.getBounds().pad(0.1), { maxZoom: 14 });
