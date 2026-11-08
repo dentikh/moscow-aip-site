@@ -6,15 +6,14 @@
 | Статус | стройка |
 | Тип | Другое |
 | Зона | Тушино / Покровское-Стрешнево |
-| Срок (план) | до 2027 |
+| Срок (план) | до 2024 |
 | Точность геометрии | exact |
 | ID | `stroi:construction-1213` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/1213>
-- cks2941 (2026-10-03)
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

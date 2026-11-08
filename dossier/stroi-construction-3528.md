@@ -13,8 +13,7 @@
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/3528>
-- stroi (2026-10-03) — <https://stroi.mos.ru/construction/8893>
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

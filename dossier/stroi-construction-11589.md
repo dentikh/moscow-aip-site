@@ -12,13 +12,13 @@
 
 ## История (АИП и наблюдения)
 
-- **2025-12-02**: Правкой №72/1 (2025) стоимость изменена: 528,4829 → 528,3027 — vestnik-721-2025.pdf
-- **2025-10-14**: Срок ввода сдвинут с 2025 на 2026 (АИП-2024 → АИП-2025) — vestnik-611-2025.pdf
+- **2025-12-02**: Правкой №72/1 (2025) стоимость изменена: 528,4829 → 528,3027 — [выпуск pressa.ru](https://pressa.ru/ru/magazines/vestnik-moskvyi/721-2025)
+- **2025-10-14**: Срок ввода сдвинут с 2025 на 2026 (АИП-2024 → АИП-2025) — [выпуск pressa.ru](https://pressa.ru/ru/magazines/vestnik-moskvyi/611-2025)
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/11589>
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

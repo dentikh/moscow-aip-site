@@ -59,7 +59,7 @@ const fc = (typeof OBJECTS !== "undefined") ? OBJECTS
   : { type: "FeatureCollection", features: [] };
 
 const state = { kinds: new Set(), zone: "all", statuses: new Set(), year: "all",
-  query: "" };
+  query: "", hideIssues: false };
 const CITY_PREFIX = "city:";  // фоновые объекты «вся Москва» (низкий приоритет)
 
 function isCityZone(f) {
@@ -105,10 +105,21 @@ function mix(hexA, hexB, k) {
   return "#" + pc.map(c => c.toString(16).padStart(2, "0")).join("");
 }
 
-/* Ручные досье (dossier/manual/) по объектам карты: object id -> slug.
-   Остальные объекты — авто-досье dossier/<source>-<source_id>.md. */
+/* Ссылка на выпуск Вестника по имени тома наблюдений (vestnik-722-2025.pdf
+   → код 722 уже «схлопнут», 72/2); диффы и прочие файлы — не выпуск. */
+function pressaUrlFromVolume(filename) {
+  const m = /^vestnik-(\d+)-(\d{4})\.pdf$/.exec(String(filename || ""));
+  return m ? `https://pressa.ru/ru/magazines/vestnik-moskvyi/${m[1]}-${m[2]}`
+    : null;
+}
+
+/* Ручные досье (dossier/manual/) по объектам карты: object id -> slug
+   (только те, чьи файлы реально есть); остальные manual:* и авто-объекты —
+   dossier/<id с «:»→«-»>.md — их пишет build_dossier (проверено ревью 2026-11-05:
+   dossier/manual/ существует лишь у двух slug — иначе 404 «Досье»). */
 const MANUAL_DOSSIERS = {
   "stroi:construction-4669": "pohodny-proezd-skhodnensky-tupik",
+  "manual:mcc-magistral-svh-lenshosse": "mcc-magistral-svh-lenshosse",
 };
 
 function dossierUrl(props) {
@@ -120,22 +131,69 @@ function dossierUrl(props) {
   return "../dossier/index.md";
 }
 
-function popupHtml(props) {
+function popupHtml(f) {
+  const props = f.properties;
   const year = deadlineLabel(props.plan_years);
-  const sources = (props.sources || []).map(s =>
-    `<div class="popup-row">источник: ${s.url ? `<a href="${s.url}" target="_blank">${s.source}</a>` : s.source} (${s.date || ""})</div>`).join("");
-  const obs = (props.observations || []).slice(-5).reverse().map(o =>
-    `<li>${o.date}: ${escapeHtml(o.note)}</li>`).join("");
-  const vest = (props.vestnik || []).map(v =>
-    `<div class="popup-row">📰 ${v.pp} от ${v.date}: ${escapeHtml((v.title || "").slice(0, 90))}${(v.title || "").length > 90 ? "…" : ""}</div>`).join("");
+  const sources = (props.sources || []).map(s => {
+    const url = escapeHtml(s.url || "");
+    const label = escapeHtml(s.source || "источник");
+    const date = escapeHtml(s.date || "");
+    return `<div class="popup-row">источник: ${url ? `<a href="${url}" target="_blank" rel="noopener">${label}</a>` : label}${date ? ` (${date})` : ""}</div>`;
+  }).join("");
+  const obs = (props.observations || []).slice(-5).reverse().map(o => {
+    const link = pressaUrlFromVolume(o.source_url);
+    const src = link ? ` <a href="${link}" target="_blank" rel="noopener">выпуск</a>` : "";
+    return `<li>${escapeHtml(o.date)}: ${escapeHtml(o.note)}${src}</li>`;
+  }).join("");
+  const vest = (props.vestnik || []).map(v => {
+    const pages = v.pages ? `, стр. ${escapeHtml(v.pages)}` : "";
+    const label = v.pp ? `Постановление ${escapeHtml(v.pp)}` : "Документ";
+    const head = v.url
+      ? `<a href="${escapeHtml(v.url)}" target="_blank" rel="noopener">${label}</a>`
+      : label;
+    const t = v.title || "";
+    return `<div class="popup-row">📰 ${head} от ${escapeHtml(v.date || "")}${pages}: ${escapeHtml(t.slice(0, 90))}${t.length > 90 ? "…" : ""}</div>`;
+  }).join("");
   return `<div class="popup-title">${escapeHtml(props.name)}</div>` +
-    `<div class="popup-row">статус: ${STATUS_LABELS[props.status] || props.status}` +
-    `${year ? ` · срок: ${year}` : ""}</div>` +
-    `<div class="popup-row">зона: ${ZONE_LABELS[props.zone] || String(props.zone).replace(/^city:/, "")} · тип: ${KIND_LABELS[props.kind] || props.kind}</div>` +
+    `<div class="popup-row">статус: ${escapeHtml(STATUS_LABELS[props.status] || props.status)}` +
+    `${year ? ` · срок: ${escapeHtml(year)}` : ""}</div>` +
+    `<div class="popup-row">зона: ${escapeHtml(ZONE_LABELS[props.zone] || String(props.zone || "").replace(/^city:/, ""))} · тип: ${escapeHtml(KIND_LABELS[props.kind] || props.kind)}</div>` +
+    geometryRow(f) +
+    issuesBlock(props) +
     (vest || "") +
     (sources || "") +
     (obs ? `<ul class="popup-obs">${obs}</ul>` : "") +
-    `<div class="popup-dossier"><a href="${dossierUrl(props)}" target="_blank">📄 Досье</a></div>`;
+    `<div class="popup-dossier"><a href="${escapeHtml(dossierUrl(props))}" target="_blank" rel="noopener">📄 Досье</a></div>`;
+}
+
+/* Ревизия «просто линий» (2026-11-06): честная пометка, что линейная
+   геометрия — ось трассы из источника, а не точная проезжая часть. */
+function geometryRow(f) {
+  const role = f.properties.geometry_role;
+  if (role === "axis") {
+    return `<div class="popup-row">геометрия: ось трассы (источник даёт только ось)</div>`;
+  }
+  if (role === "hull") {
+    return `<div class="popup-row">геометрия: габарит по вершинам источника</div>`;
+  }
+  return "";
+}
+
+/* Пометки проблем геометрии (замечание 2026-11-06: «помечать и
+   классифицировать: смещение, неверный тип, неверная отрисовка»). */
+const ISSUE_LABELS = {
+  axis: "источник даёт только ось трассы",
+  hull: "габарит — выпуклая оболочка вершин источника",
+  "type-mismatch": "тип геометрии не соответствует описанию",
+  "offset-suspect": "подозрение на смещение (замер против зданий OSM)",
+};
+
+function issuesBlock(props) {
+  const issues = props.geo_issues || [];
+  if (!issues.length) return "";
+  const items = issues.map(i =>
+    `<li>${ISSUE_LABELS[i.code] || escapeHtml(i.code)}${i.note ? ` — ${escapeHtml(i.note)}` : ""}</li>`).join("");
+  return `<div class="popup-issues">⚠️ Геометрия условная:<ul>${items}</ul></div>`;
 }
 
 function escapeHtml(s) {
@@ -150,6 +208,14 @@ function styleFor(feature) {
   if (geom.type === "Point") {
     return { radius: 6, color: "#333", weight: 1, fillColor: color, fillOpacity: 0.9 };
   }
+  if (geom.type === "LineString" || geom.type === "MultiLineString") {
+    // Ревизия «просто линий» (2026-11-06; правка по замечанию «дороги
+    // пострадали»): ось трассы рисуем СТРОКОЙ умеренной толщины —
+    // «лента» weight 10 вводила в заблуждение шириной
+    const ribbon = kind === "road" || kind === "bridge";
+    return { color, weight: ribbon ? 5 : 3, opacity: 0.85,
+             lineCap: "round", lineJoin: "round" };
+  }
   return { color, weight: 4, opacity: 0.85, fillOpacity: 0.25 };
 }
 
@@ -159,7 +225,7 @@ const geojsonLayer = L.geoJSON(fc, {
   // (раньше фон рисовался кружками и стадии на карте не читались)
   pointToLayer: (f, latlng) =>
     L.marker(latlng, { icon: statusIcon(f, isCityZone(f)) }),
-  onEachFeature: (f, layer) => layer.bindPopup(() => popupHtml(f.properties)),
+  onEachFeature: (f, layer) => layer.bindPopup(() => popupHtml(f)),
 }).addTo(map);
 
 for (const f of fc.features) {
@@ -184,7 +250,8 @@ function rebuild() {
       (state.zone === "cityall" ? isCityZone(f) : p.zone === state.zone);
     return wanted.has(p.kind) && zoneOk && matchesQuery(p) &&
       state.statuses.has(p.status) &&
-      (state.year === "all" || (year != null && String(year) === state.year));
+      (state.year === "all" || (year != null && String(year) === state.year)) &&
+      (!state.hideIssues || !(p.geo_issues || []).length);
   };
   const chosen = fc.features.filter(pass);
   updateSearchInfo(chosen);
@@ -207,11 +274,20 @@ function updateSearchInfo(chosen) {
 function zoomToMatches() {
   const q = state.query.trim().toLowerCase();
   if (!q) return;
-  const wanted = new Set(Object.keys(kindLayers).filter(k => state.kinds.has(k)));
-  const pts = [];
-  for (const f of fc.features) {
+  // тот же предикат, что в rebuild() — счётчик «найдено: N» и зум сходятся
+  const chosen = fc.features.filter(f => {
     const p = f.properties;
-    if (!wanted.has(p.kind) || !matchesQuery(p)) continue;
+    const year = p.plan_years && p.plan_years.end;
+    const zoneOk = state.zone === "all" ||
+      (state.zone === "cityall" ? isCityZone(f) : p.zone === state.zone);
+    return state.kinds.has(p.kind) && zoneOk && matchesQuery(p) &&
+      state.statuses.has(p.status) &&
+      (state.year === "all" || (year != null && String(year) === state.year)) &&
+      (!state.hideIssues || !(p.geo_issues || []).length);
+  });
+  const pts = [];
+  for (const f of chosen) {
+    const p = f.properties;
     const g = f.geometry;
     if (!g) continue;
     const flat = [];
@@ -240,16 +316,26 @@ function initSearch() {
 }
 
 function initPanel() {
-  // счётчики типов — по приоритетным объектам (фон city:* не раздувает панель)
+  // счётчики типов — по приоритетным объектам; фон city:* не раздувает
+  // панель, НО чекбоксы создаются по ВСЕМ kind'ам из данных: детсады
+  // существуют только в фоне — раньше чекбокс не создавался, тип не
+  // попадал в state.kinds и такие объекты были невидимы навсегда.
   const counts = {};
+  const cityCounts = {};
   let cityCount = 0;
   for (const f of fc.features) {
-    if (isCityZone(f)) { cityCount++; continue; }
     const k = f.properties.kind;
+    if (isCityZone(f)) {
+      cityCount++;
+      cityCounts[k] = (cityCounts[k] || 0) + 1;
+      continue;
+    }
     counts[k] = (counts[k] || 0) + 1;
   }
   const kindsBox = document.getElementById("kinds");
-  for (const kind of Object.keys(counts).sort((a, b) => counts[b] - counts[a])) {
+  const kinds = Object.keys(kindLayers)
+    .sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+  for (const kind of kinds) {
     const label = document.createElement("label");
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -259,8 +345,10 @@ function initPanel() {
       rebuild();
     });
     label.appendChild(cb);
+    const n = counts[kind] || 0;
+    const cn = cityCounts[kind] || 0;
     label.appendChild(document.createTextNode(
-      ` ${KIND_LABELS[kind] || kind} (${counts[kind]})`));
+      ` ${KIND_LABELS[kind] || kind} (${n || cn}${n === 0 && cn ? " фон" : ""})`));
     kindsBox.appendChild(label);
     state.kinds.add(kind);
   }
@@ -335,6 +423,21 @@ function initLegendFilters() {
     row.append(" год ввода: ", sel);
     box.appendChild(row);
   }
+  // Пометки проблем геометрии (2026-11-06): скрыть/показать объекты с ⚠
+  const issueCount = fc.features.filter(f => (f.properties.geo_issues || []).length).length;
+  if (issueCount) {
+    const row = document.createElement("label");
+    row.className = "legend-filter-item";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.addEventListener("change", () => {
+      state.hideIssues = cb.checked;
+      rebuild();
+    });
+    row.appendChild(cb);
+    row.append(` скрыть с ⚠ геометрией (${issueCount})`);
+    box.appendChild(row);
+  }
 }
 
 initPanel();
@@ -342,7 +445,20 @@ initLegend();
 initLegendFilters();
 initSearch();
 rebuild();
-if (fc.features.length) {
+/* Вид из URL: ?lat=55.83&lon=37.42&z=14&base=osm — шэринг/визуальные гейты
+   (base=osm — без тайлов Яндекса, которые не грузятся из РФ/песочницы);
+   без параметров — вся Москва. */
+const urlView = new URLSearchParams(window.location.search);
+const iniLat = parseFloat(urlView.get("lat"));
+const iniLon = parseFloat(urlView.get("lon"));
+const iniZ = parseInt(urlView.get("z") || "", 10);
+if (urlView.get("base") === "osm") {
+  map.removeLayer(yandexTiles);
+  map.addLayer(osmTiles);
+}
+if (Number.isFinite(iniLat) && Number.isFinite(iniLon) && Number.isFinite(iniZ)) {
+  map.setView([iniLat, iniLon], iniZ);
+} else if (fc.features.length) {
   map.fitBounds(geojsonLayer.getBounds().pad(0.1), { maxZoom: 14 });
 } else {
   map.setView([55.75, 37.62], 10);  // центр Москвы, если данных нет

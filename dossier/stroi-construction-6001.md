@@ -10,10 +10,14 @@
 | Точность геометрии | exact |
 | ID | `stroi:construction-6001` |
 
+## Постановления (Вестник)
+
+- **2462-ПП** от 2026-09-09, стр. 335–343: Об утверждении проекта планировки территории вблизи земельного участка 4/2 по улице Марии Ульяновой, земельного участка 7А по улице Строителей
+
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/6001>
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

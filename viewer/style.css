@@ -113,3 +113,8 @@ body.dig-active, body.dig-active .leaflet-grab { cursor: crosshair !important; }
 .legend-filter-item svg { flex: none; }
 .legend-filter-item select { max-width: 120px; }
 .status-marker { background: none; border: none; }  /* divIcon-обёртка маркера-формы */
+
+/* Пометки проблем геометрии (2026-11-06) */
+.popup-issues { margin-top: 4px; padding: 4px 6px; background: #fff7e0;
+  border: 1px solid #e0c060; border-radius: 4px; font-size: 11px; }
+.popup-issues ul { margin: 2px 0 0 14px; padding: 0; }

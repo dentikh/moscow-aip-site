@@ -6,15 +6,14 @@
 | Статус | проект |
 | Тип | Реновация |
 | Зона | Тушино / Покровское-Стрешнево |
-| Срок (план) | до 2037 |
+| Срок (план) | — |
 | Точность геометрии | exact |
 | ID | `stroi:construction-3552` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/3552>
-- stroi (2026-10-03) — <https://stroi.mos.ru/construction/3562>
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

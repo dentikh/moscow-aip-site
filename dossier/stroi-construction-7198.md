@@ -6,15 +6,15 @@
 | Статус | эксплуатация |
 | Тип | ЖК |
 | Зона | Аминьевское / Очаково (~5 км) |
-| Срок (план) | до 2026 |
+| Срок (план) | до 2027 |
 | Точность геометрии | exact |
 | ID | `stroi:construction-7198` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/7198>
-- cks2941 (2026-10-03)
+- cks2941 (2026-11-04) — <https://data.mos.ru/datasets/2941>
 
 ---
-*auto-generated 2026-10-10 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

@@ -125,21 +125,33 @@
     if (updateStore !== false) saveOverlays([]);
   }
 
+  let placementCleanup = null;  // отмена размещения: чистит маркеры/обработчик
   function startOverlayPlacement(series) {
     const url = series.stitched || (series.files || [])[0];
     if (!url) { toast("Нет файлов серии"); return; }
+    if (placementCleanup) placementCleanup();  // повторный старт — без дублей
     const hint = $("dig-hint");
     hint.textContent = "Наложение: кликните ДВЕ точки — противоположные углы чертежа на карте.";
     hint.classList.remove("hidden");
     document.body.classList.add("dig-active");
     const pts = [];
+    const markers = [];
+    const finish = () => {
+      map.off("click", handler);
+      document.removeEventListener("keydown", onKey);
+      document.body.classList.remove("dig-active");
+      hint.classList.add("hidden");
+      markers.forEach((m) => map.removeLayer(m));
+      placementCleanup = null;
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") { finish(); toast("Наложение отменено"); }
+    };
     const handler = (e) => {
       pts.push([e.latlng.lat, e.latlng.lng]);
-      L.circleMarker(e.latlng, { radius: 5, color: "#b00" }).addTo(map);
+      markers.push(L.circleMarker(e.latlng, { radius: 5, color: "#b00" }).addTo(map));
       if (pts.length === 2) {
-        map.off("click", handler);
-        document.body.classList.remove("dig-active");
-        hint.classList.add("hidden");
+        finish();
         const bounds = L.latLngBounds(pts[0], pts[1]);
         showOverlay(url, bounds);
         saveOverlays([{ url, bounds: [[bounds.getSouth(), bounds.getWest()],
@@ -147,7 +159,9 @@
         map.fitBounds(bounds.pad(0.2));
       }
     };
+    document.addEventListener("keydown", onKey);
     map.on("click", handler);
+    placementCleanup = finish;
   }
 
   $("overlay-opacity").addEventListener("input", (e) => {
@@ -179,7 +193,9 @@
             west + (x / w) * (east - west)];
   }
 
+  let vectorSeq = 0;  // гейт гонки: два быстрых клика по разным сериям
   async function showVectorOverlay(series) {
+    const seq = ++vectorSeq;
     clearVectorOverlay(false);
     if (!activeOverlayInfo || !activeOverlayInfo.bounds) {
       toast("Сначала наложите чертёж на карту («На карту»)");
@@ -192,9 +208,12 @@
       if (!resp.ok) throw new Error("нет файла");
       gj = await resp.json();
     } catch (e) {
-      toast("Вектор серии недоступен: запустите scripts/extract_lines.py");
+      if (seq === vectorSeq) {
+        toast("Вектор серии недоступен: запустите scripts/extract_lines.py");
+      }
       return;
     }
+    if (seq !== vectorSeq) return;  // пока грузились — выбрали другую серию
     /* размеры листа — из max координат GeoJSON */
     let w = 0, h = 0;
     for (const f of gj.features) {
