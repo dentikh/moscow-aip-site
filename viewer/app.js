@@ -27,6 +27,10 @@ const ZONE_LABELS = {
   aminevskoe: "Аминьевское / Очаково (~5 км)",
   citywide: "Общегородские магистрали",
 };
+const OKRUG_ORDER = [
+  "ЦАО", "САО", "СВАО", "ВАО", "ЮВАО", "ЮАО",
+  "ЮЗАО", "ЗАО", "СЗАО", "ЗелАО", "НАО", "ТАО",
+];
 
 const yandexTiles = L.tileLayer(
   "https://core-stv-renderer.maps.yandex.net/2.x/tiles?l=map&x={x}&y={y}&z={z}" +
@@ -58,12 +62,39 @@ function toast(text) {
 const fc = (typeof OBJECTS !== "undefined") ? OBJECTS
   : { type: "FeatureCollection", features: [] };
 
-const state = { kinds: new Set(), zone: "all", statuses: new Set(), year: "all",
-  query: "", hideIssues: false };
+const state = {
+  kinds: new Set(),
+  districts: new Set(),
+  allDistrictsSelected: true,
+  statuses: new Set(),
+  year: "all",
+  query: "",
+  hideIssues: false,
+};
 const CITY_PREFIX = "city:";  // фоновые объекты «вся Москва» (низкий приоритет)
 
 function isCityZone(f) {
   return String(f.properties.zone || "").startsWith(CITY_PREFIX);
+}
+
+function featureDistricts(f) {
+  const p = (f && f.properties) || {};
+  if (Array.isArray(p.districts) && p.districts.length) return p.districts;
+  const z = String(p.zone || "");
+  if (z.startsWith(CITY_PREFIX)) {
+    return z.slice(CITY_PREFIX.length).split(" + ").map(s => s.trim()).filter(Boolean);
+  }
+  return z ? [ZONE_LABELS[z] || z] : [];
+}
+
+function featureLocationLabel(props) {
+  const ds = Array.isArray(props.districts) && props.districts.length
+    ? props.districts
+    : [ZONE_LABELS[props.zone] || String(props.zone || "").replace(/^city:/, "")].filter(Boolean);
+  const oks = Array.isArray(props.okrugs) && props.okrugs.length
+    ? ` (${props.okrugs.join(", ")})`
+    : "";
+  return ds.join(", ") + oks;
 }
 const kindLayers = {};
 
@@ -157,7 +188,7 @@ function popupHtml(f) {
   return `<div class="popup-title">${escapeHtml(props.name)}</div>` +
     `<div class="popup-row">статус: ${escapeHtml(STATUS_LABELS[props.status] || props.status)}` +
     `${year ? ` · срок: ${escapeHtml(year)}` : ""}</div>` +
-    `<div class="popup-row">зона: ${escapeHtml(ZONE_LABELS[props.zone] || String(props.zone || "").replace(/^city:/, ""))} · тип: ${escapeHtml(KIND_LABELS[props.kind] || props.kind)}</div>` +
+    `<div class="popup-row">район: ${escapeHtml(featureLocationLabel(props))} · тип: ${escapeHtml(KIND_LABELS[props.kind] || props.kind)}</div>` +
     geometryRow(f) +
     issuesBlock(props) +
     (vest || "") +
@@ -239,21 +270,24 @@ function matchesQuery(p) {
   return !q || String(p.name || "").toLowerCase().includes(q);
 }
 
+function matchesZone(f) {
+  if (state.allDistrictsSelected) return true;
+  if (state.districts.size === 0) return false;
+  return featureDistricts(f).some(d => state.districts.has(d));
+}
+
+function matchesFilter(f) {
+  const p = f.properties;
+  const year = p.plan_years && p.plan_years.end;
+  return state.kinds.has(p.kind) && matchesZone(f) && matchesQuery(p) &&
+    state.statuses.has(p.status) &&
+    (state.year === "all" || (year != null && String(year) === state.year)) &&
+    (!state.hideIssues || !(p.geo_issues || []).length);
+}
+
 function rebuild() {
   geojsonLayer.clearLayers();
-  const wanted = new Set(
-    Object.keys(kindLayers).filter(k => state.kinds.has(k)));
-  const pass = f => {
-    const p = f.properties;
-    const year = p.plan_years && p.plan_years.end;
-    const zoneOk = state.zone === "all" ||
-      (state.zone === "cityall" ? isCityZone(f) : p.zone === state.zone);
-    return wanted.has(p.kind) && zoneOk && matchesQuery(p) &&
-      state.statuses.has(p.status) &&
-      (state.year === "all" || (year != null && String(year) === state.year)) &&
-      (!state.hideIssues || !(p.geo_issues || []).length);
-  };
-  const chosen = fc.features.filter(pass);
+  const chosen = fc.features.filter(matchesFilter);
   updateSearchInfo(chosen);
   // низкий приоритет: фоновые city:* добавляются ПЕРВЫМИ (рисуются ниже)
   const ordered = [...chosen.filter(isCityZone), ...chosen.filter(f => !isCityZone(f))];
@@ -266,28 +300,16 @@ function updateSearchInfo(chosen) {
   if (!info) return;
   const q = state.query.trim();
   if (!q) { info.classList.add("hidden"); return; }
-  const zoneChosen = chosen.filter(f => state.zone !== "cityall" || isCityZone(f));
-  info.textContent = `найдено: ${zoneChosen.length}`;
+  info.textContent = `найдено: ${chosen.length}`;
   info.classList.remove("hidden");
 }
 
 function zoomToMatches() {
   const q = state.query.trim().toLowerCase();
   if (!q) return;
-  // тот же предикат, что в rebuild() — счётчик «найдено: N» и зум сходятся
-  const chosen = fc.features.filter(f => {
-    const p = f.properties;
-    const year = p.plan_years && p.plan_years.end;
-    const zoneOk = state.zone === "all" ||
-      (state.zone === "cityall" ? isCityZone(f) : p.zone === state.zone);
-    return state.kinds.has(p.kind) && zoneOk && matchesQuery(p) &&
-      state.statuses.has(p.status) &&
-      (state.year === "all" || (year != null && String(year) === state.year)) &&
-      (!state.hideIssues || !(p.geo_issues || []).length);
-  });
+  const chosen = fc.features.filter(matchesFilter);
   const pts = [];
   for (const f of chosen) {
-    const p = f.properties;
     const g = f.geometry;
     if (!g) continue;
     const flat = [];
@@ -322,11 +344,9 @@ function initPanel() {
   // попадал в state.kinds и такие объекты были невидимы навсегда.
   const counts = {};
   const cityCounts = {};
-  let cityCount = 0;
   for (const f of fc.features) {
     const k = f.properties.kind;
     if (isCityZone(f)) {
-      cityCount++;
       cityCounts[k] = (cityCounts[k] || 0) + 1;
       continue;
     }
@@ -352,20 +372,208 @@ function initPanel() {
     kindsBox.appendChild(label);
     state.kinds.add(kind);
   }
-  const sel = document.getElementById("zone");
-  for (const [code, label] of Object.entries({
-    all: "Все зоны", ...ZONE_LABELS, cityall: "Вся Москва (фон)",
-  })) {
-    const opt = document.createElement("option");
-    opt.value = code;
-    opt.textContent = label;
-    sel.appendChild(opt);
-  }
-  sel.addEventListener("change", () => { state.zone = sel.value; rebuild(); });
+  initZoneTree();
+  const totalDistricts = new Set(fc.features.flatMap(featureDistricts)).size;
   document.getElementById("stats").textContent =
-    `объектов: ${fc.features.length - cityCount} · зон: ` +
-    `${new Set(fc.features.filter(f => !isCityZone(f)).map(f => f.properties.zone)).size}` +
-    ` · фон: ${cityCount}`;
+    `объектов: ${fc.features.length} · районов: ${totalDistricts}`;
+}
+
+function initZoneTree() {
+  const body = document.getElementById("zone-tree-body");
+  const summaryEl = document.getElementById("zone-summary");
+  const filterInput = document.getElementById("zone-filter");
+  if (!body) return;
+
+  const districtCounts = {};
+  const okrugByDistrict = {};
+  // Шаг 1: из объектов с одним округом точно узнаём округ каждого района
+  for (const f of fc.features) {
+    const ds = featureDistricts(f);
+    const oks = (f.properties && f.properties.okrugs) || [];
+    for (const d of ds) {
+      districtCounts[d] = (districtCounts[d] || 0) + 1;
+      if (oks.length === 1 && !okrugByDistrict[d]) {
+        okrugByDistrict[d] = oks[0];
+      }
+    }
+  }
+  // Шаг 2: фолбэк для районов, встретившихся только в мульти-окружных объектах
+  for (const f of fc.features) {
+    const ds = featureDistricts(f);
+    const oks = (f.properties && f.properties.okrugs) || [];
+    for (const d of ds) {
+      if (!okrugByDistrict[d]) {
+        okrugByDistrict[d] = oks[0] || "Другие";
+      }
+    }
+  }
+
+  const allDistricts = Object.keys(districtCounts).sort((a, b) => a.localeCompare(b, "ru"));
+  for (const d of allDistricts) state.districts.add(d);
+  state.allDistrictsSelected = true;
+
+  const districtsByOkrug = {};
+  for (const d of allDistricts) {
+    const ok = okrugByDistrict[d] || "Другие";
+    if (!districtsByOkrug[ok]) districtsByOkrug[ok] = [];
+    districtsByOkrug[ok].push(d);
+  }
+  const okrugs = [
+    ...OKRUG_ORDER.filter(ok => districtsByOkrug[ok]),
+    ...Object.keys(districtsByOkrug).filter(ok => !OKRUG_ORDER.includes(ok)),
+  ];
+
+  // Считаем уникальные объекты на округ (объект в 2 районах одного округа считается 1 раз)
+  const okrugObjCounts = {};
+  for (const ok of okrugs) okrugObjCounts[ok] = 0;
+  for (const f of fc.features) {
+    const fOks = new Set(featureDistricts(f).map(d => okrugByDistrict[d] || "Другие"));
+    for (const ok of fOks) {
+      okrugObjCounts[ok] = (okrugObjCounts[ok] || 0) + 1;
+    }
+  }
+
+  // Уровень 1: Вся Москва
+  const lvl1 = document.createElement("label");
+  lvl1.className = "zone-lvl1";
+  const allCb = document.createElement("input");
+  allCb.type = "checkbox";
+  allCb.checked = true;
+  lvl1.appendChild(allCb);
+  const allTitle = document.createElement("b");
+  allTitle.textContent = "Вся Москва";
+  lvl1.appendChild(allTitle);
+  const allCnt = document.createElement("span");
+  allCnt.className = "zone-cnt";
+  allCnt.textContent = `(${fc.features.length})`;
+  lvl1.appendChild(allCnt);
+  body.appendChild(lvl1);
+
+  const okrugNodes = [];
+  const districtCbs = new Map();
+
+  // Уровень 2: Административные округа -> Уровень 3: Районы города
+  for (const ok of okrugs) {
+    const ds = districtsByOkrug[ok];
+    const det = document.createElement("details");
+    det.className = "zone-okrug";
+    const sum = document.createElement("summary");
+    const head = document.createElement("span");
+    head.className = "zone-okrug-head";
+    const okCb = document.createElement("input");
+    okCb.type = "checkbox";
+    okCb.checked = true;
+    okCb.addEventListener("click", e => e.stopPropagation());
+    head.appendChild(okCb);
+    const okTitle = document.createElement("b");
+    okTitle.textContent = ok;
+    head.appendChild(okTitle);
+    const okCnt = document.createElement("span");
+    okCnt.className = "zone-cnt";
+    okCnt.textContent = `(${okrugObjCounts[ok] || 0})`;
+    head.appendChild(okCnt);
+    sum.appendChild(head);
+    det.appendChild(sum);
+
+    const list = document.createElement("div");
+    list.className = "zone-districts";
+    const rows = [];
+    for (const d of ds) {
+      const lbl = document.createElement("label");
+      lbl.className = "zone-lvl3";
+      const dCb = document.createElement("input");
+      dCb.type = "checkbox";
+      dCb.checked = true;
+      dCb.addEventListener("change", () => {
+        dCb.checked ? state.districts.add(d) : state.districts.delete(d);
+        syncUI();
+        rebuild();
+      });
+      lbl.appendChild(dCb);
+      lbl.appendChild(document.createTextNode(d + " "));
+      const dCnt = document.createElement("span");
+      dCnt.className = "zone-cnt";
+      dCnt.textContent = `(${districtCounts[d] || 0})`;
+      lbl.appendChild(dCnt);
+      list.appendChild(lbl);
+      districtCbs.set(d, dCb);
+      rows.push({ name: d, el: lbl });
+    }
+    det.appendChild(list);
+    body.appendChild(det);
+
+    okCb.addEventListener("change", () => {
+      for (const d of ds) {
+        okCb.checked ? state.districts.add(d) : state.districts.delete(d);
+      }
+      syncUI();
+      rebuild();
+    });
+    okrugNodes.push({ ok, ds, det, okCb, rows });
+  }
+
+  allCb.addEventListener("change", () => {
+    if (allCb.checked) {
+      for (const d of allDistricts) state.districts.add(d);
+    } else {
+      state.districts.clear();
+    }
+    syncUI();
+    rebuild();
+  });
+
+  function syncUI() {
+    const nSel = state.districts.size;
+    const nAll = allDistricts.length;
+    state.allDistrictsSelected = (nSel === nAll);
+    allCb.checked = nSel === nAll && nAll > 0;
+    allCb.indeterminate = nSel > 0 && nSel < nAll;
+
+    for (const [d, cb] of districtCbs.entries()) {
+      cb.checked = state.districts.has(d);
+    }
+    const fullOkrugs = [];
+    for (const node of okrugNodes) {
+      const selInOk = node.ds.filter(d => state.districts.has(d)).length;
+      node.okCb.checked = selInOk === node.ds.length && node.ds.length > 0;
+      node.okCb.indeterminate = selInOk > 0 && selInOk < node.ds.length;
+      if (node.okCb.checked) fullOkrugs.push(node.ok);
+    }
+
+    if (!summaryEl) return;
+    if (nSel === nAll) {
+      summaryEl.textContent = "Районы: Вся Москва";
+    } else if (nSel === 0) {
+      summaryEl.textContent = "Районы: ничего не выбрано (0)";
+    } else if (fullOkrugs.length > 0 &&
+               fullOkrugs.reduce((acc, ok) => acc + districtsByOkrug[ok].length, 0) === nSel) {
+      summaryEl.textContent = `Округа: ${fullOkrugs.join(", ")}`;
+    } else {
+      const names = [...state.districts];
+      summaryEl.textContent = names.length <= 2
+        ? `Районы: ${names.join(", ")}`
+        : `Районы: ${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+    }
+  }
+
+  if (filterInput) {
+    filterInput.addEventListener("input", () => {
+      const q = filterInput.value.trim().toLowerCase().replace(/ё/g, "е");
+      for (const node of okrugNodes) {
+        const okMatch = node.ok.toLowerCase().replace(/ё/g, "е").includes(q);
+        let anyDistrict = false;
+        for (const r of node.rows) {
+          const dMatch = !q || okMatch || r.name.toLowerCase().replace(/ё/g, "е").includes(q);
+          r.el.classList.toggle("hidden", !dMatch);
+          if (dMatch) anyDistrict = true;
+        }
+        node.det.classList.toggle("hidden", !anyDistrict);
+        if (q && anyDistrict && !okMatch) node.det.open = true;
+      }
+    });
+  }
+
+  syncUI();
 }
 
 function initLegend() {

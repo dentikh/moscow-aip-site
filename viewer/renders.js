@@ -214,20 +214,41 @@
       return;
     }
     if (seq !== vectorSeq) return;  // пока грузились — выбрали другую серию
+    /* MultiLineString = список частей; LineString нормализуем в одну часть */
+    const vectorParts = (f) => f.geometry.type === "MultiLineString"
+      ? f.geometry.coordinates : [f.geometry.coordinates];
     /* размеры листа — из max координат GeoJSON */
     let w = 0, h = 0;
     for (const f of gj.features) {
-      for (const [x, y] of f.geometry.coordinates) {
-        if (x > w) w = x;
-        if (y > h) h = y;
+      for (const part of vectorParts(f)) {
+        for (const [x, y] of part) {
+          if (x > w) w = x;
+          if (y > h) h = y;
+        }
       }
     }
     for (const f of gj.features) {
       const meta = VECTOR_CLASS[f.properties.line_class] || VECTOR_CLASS.blue;
-      const latlngs = f.geometry.coordinates.map(([x, y]) =>
-        pxToLatLng(bounds, x, y, w || 1, h || 1));
-      const layer = L.polyline(latlngs, { color: meta.color, weight: 3,
-                                          opacity: 0.9 }).addTo(map);
+      const parts = vectorParts(f);
+      const latlngs = parts.map(part => part.map(([x, y]) =>
+        pxToLatLng(bounds, x, y, w || 1, h || 1)));
+      /* noisy-фичи (шумная извлечённая геометрия) — серый пунктир: честно
+         отличается от достоверной оси, директива «не подгонять» */
+      const noisy = f.properties.noisy;
+      const layer = L.polyline(latlngs, {
+        color: noisy ? "#8a8a8a" : meta.color,
+        weight: noisy ? 2 : 3,
+        opacity: noisy ? 0.55 : 0.9,
+        dashArray: noisy ? "4 4" : null
+      }).addTo(map);
+      const els = f.properties.elements || [];
+      const elCounts = {};
+      for (const el of els) elCounts[el.type] = (elCounts[el.type] || 0) + 1;
+      const elSummary = Object.entries(elCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
+      const popupLines = [`<b>${escapeHtml(meta.label)}</b>`];
+      if (noisy) popupLines.push("<i>Шумная геометрия: авто-векторизация не выделила чёткую ось</i>");
+      if (elSummary) popupLines.push(`<small>Элементы: ${escapeHtml(elSummary)}</small>`);
+      layer.bindPopup(popupLines.join("<br>"));
       layer._vectorId = f.properties._id;
       vectorLayers.push(layer);
     }
@@ -246,28 +267,42 @@
   }
 
   function mergeVectorIntoDigitize() {
-    if (!vectorSeries) return;
+    if (!vectorSeries || !activeOverlayInfo) return;
     const seriesId = vectorSeries.id;
+    const vectorParts = (f) => f.geometry.type === "MultiLineString"
+      ? f.geometry.coordinates : [f.geometry.coordinates];
     fetch(`../data/processed/lines/${seriesId}.geojson`)
       .then((r) => r.json())
       .then((gj) => {
         const bounds = L.latLngBounds(activeOverlayInfo.bounds);
         let w = 0, h = 0;
         for (const f of gj.features) {
-          for (const [x, y] of f.geometry.coordinates) {
-            if (x > w) w = x;
-            if (y > h) h = y;
+          for (const part of vectorParts(f)) {
+            for (const [x, y] of part) {
+              if (x > w) w = x;
+              if (y > h) h = y;
+            }
           }
         }
         let added = 0;
         const ids = new Set(manualFeatures.map((f) => f.properties.id));
         for (const f of gj.features) {
+          const parts = vectorParts(f).filter((p) => p && p.length >= 2);
+          if (!parts.length) continue;
           const meta = VECTOR_CLASS[f.properties.line_class] || VECTOR_CLASS.blue;
-          const id = `auto:${seriesId}:${f.properties.line_class}:${f.geometry.coordinates[0][0]}:${f.geometry.coordinates[0][1]}:${f.geometry.coordinates.length}`;
+          const firstPt = parts[0][0];
+          const totalPts = parts.reduce((acc, p) => acc + p.length, 0);
+          const id = `auto:${seriesId}:${f.properties.line_class}:${firstPt[0]}:${firstPt[1]}:${totalPts}`;
           if (ids.has(id)) continue;
-          const latlngs = f.geometry.coordinates.map(([x, y]) =>
-            pxToLatLng(bounds, x, y, w || 1, h || 1));
-          const coords = latlngs.map(([lat, lng]) => [lng, lat]);
+          const coordsParts = parts.map((part) =>
+            part.map(([x, y]) => {
+              const [lat, lng] = pxToLatLng(bounds, x, y, w || 1, h || 1);
+              return [lng, lat];
+            })
+          );
+          const geometry = coordsParts.length === 1
+            ? { type: "LineString", coordinates: coordsParts[0] }
+            : { type: "MultiLineString", coordinates: coordsParts };
           manualFeatures.push({
             type: "Feature",
             properties: {
@@ -277,7 +312,7 @@
               observations: [], renders: [],
               geometry_precision: "approximate",
             },
-            geometry: { type: "LineString", coordinates: coords },
+            geometry,
           });
           drawManualFeature(manualFeatures[manualFeatures.length - 1]);
           added++;
@@ -285,7 +320,8 @@
         localStorage.setItem(MANUAL_KEY, JSON.stringify(manualFeatures));
         renderManualList();
         toast(`Влито в оцифровку: ${added} (дублей пропущено: ${gj.features.length - added})`);
-      });
+      })
+      .catch(() => toast("Не удалось загрузить вектор серии"));
   }
 
   $("vector-merge").addEventListener("click", mergeVectorIntoDigitize);
@@ -410,8 +446,11 @@
 
   function drawManualFeature(f) {
     const color = KIND_COLORS[f.properties.kind] || KIND_COLORS.other;
-    const coords = f.geometry.type === "Polygon" ? f.geometry.coordinates[0] : f.geometry.coordinates;
-    const latlngs = coords.map((c) => [c[1], c[0]]);
+    const latlngs = f.geometry.type === "Polygon"
+      ? f.geometry.coordinates[0].map((c) => [c[1], c[0]])
+      : f.geometry.type === "MultiLineString"
+        ? f.geometry.coordinates.map((part) => part.map((c) => [c[1], c[0]]))
+        : f.geometry.coordinates.map((c) => [c[1], c[0]]);
     const layer = f.geometry.type === "Polygon"
       ? L.polygon(latlngs, { color, weight: 3, fillOpacity: 0.2 })
       : L.polyline(latlngs, { color, weight: 4 });

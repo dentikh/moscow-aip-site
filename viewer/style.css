@@ -118,3 +118,76 @@ body.dig-active, body.dig-active .leaflet-grab { cursor: crosshair !important; }
 .popup-issues { margin-top: 4px; padding: 4px 6px; background: #fff7e0;
   border: 1px solid #e0c060; border-radius: 4px; font-size: 11px; }
 .popup-issues ul { margin: 2px 0 0 14px; padding: 0; }
+
+/* Трёхуровневый мультиселект зон: Вся Москва -> Округа -> Районы */
+.zone-tree {
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: #fafafa;
+}
+.zone-tree > summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zone-tree-tools {
+  margin: 6px 0 4px;
+}
+.zone-tree-tools input[type="search"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font: 12px system-ui, sans-serif;
+}
+.zone-tree-body {
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 12px;
+  padding-right: 2px;
+}
+.zone-lvl1 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0;
+  border-bottom: 1px solid #e2e2e2;
+  margin-bottom: 3px;
+  cursor: pointer;
+}
+.zone-okrug {
+  margin: 2px 0;
+}
+.zone-okrug > summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+.zone-okrug-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.zone-districts {
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.zone-lvl3 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 1px 0;
+}
+.zone-cnt {
+  color: #777;
+  font-size: 11px;
+}
