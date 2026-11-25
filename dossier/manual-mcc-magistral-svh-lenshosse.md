@@ -12,9 +12,9 @@
 
 ## Источники
 
-- — — <https://pressa.ru/ru/magazines/vestnik-moskvyi/611-2024>
-- — — <https://www.openstreetmap.org/way/1206246382>
+- АИП-2024 (ПП №2251-ПП, Вестник №61/1-2024) — <https://pressa.ru/ru/magazines/vestnik-moskvyi/611-2024>
+- OSM: proposed-линии сообщества (воркшоп roads.ru) — <https://www.openstreetmap.org/way/1206246382>
 
 ---
-*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

@@ -12,9 +12,9 @@
 
 ## Источники
 
-- — — <https://www.mos.ru/dgp/anticorruption/antikorruptcionnaia-ekspertiza/view/22084221/>
-- — — <https://docs.cntd.ru/document/1315645570>
+- Проект постановления ППТЛО (ДГП, каталог красных линий МСК-77, секция дорожно-мостового строительства) — <https://www.mos.ru/dgp/anticorruption/antikorruptcionnaia-ekspertiza/view/22084221/>
+- ПП №3320-ПП от 23.12.2025 — <https://docs.cntd.ru/document/1315645570>
 
 ---
-*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

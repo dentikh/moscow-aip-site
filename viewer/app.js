@@ -167,7 +167,7 @@ function popupHtml(f) {
   const year = deadlineLabel(props.plan_years);
   const sources = (props.sources || []).map(s => {
     const url = escapeHtml(s.url || "");
-    const label = escapeHtml(s.source || "источник");
+    const label = escapeHtml(s.source || s.title || "источник");
     const date = escapeHtml(s.date || "");
     return `<div class="popup-row">источник: ${url ? `<a href="${url}" target="_blank" rel="noopener">${label}</a>` : label}${date ? ` (${date})` : ""}</div>`;
   }).join("");

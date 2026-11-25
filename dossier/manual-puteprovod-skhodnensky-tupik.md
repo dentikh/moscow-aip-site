@@ -12,9 +12,9 @@
 
 ## Источники
 
-- — — <https://docs.cntd.ru/document/1315645570>
-- — — <https://pressa.ru/ru/magazines/vestnik-moskvyi/611-2025>
+- ПП №3320-ПП от 23.12.2025 (Вестник Москвы, спецвыпуск №54, т.1) — <https://docs.cntd.ru/document/1315645570>
+- АИП-2025 (ПП №2464-ПП, Вестник №61/1-2025) — <https://pressa.ru/ru/magazines/vestnik-moskvyi/611-2025>
 
 ---
-*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->

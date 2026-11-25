@@ -20,5 +20,5 @@
 - cks2941 (2026-11-04) — <https://data.mos.ru/datasets/2941>
 
 ---
-*auto-generated 2026-11-09 · build_dossier.py · источник: dist/objects.geojson*
+*auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*
 <!-- auto:end -->
