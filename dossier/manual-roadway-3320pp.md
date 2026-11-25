@@ -13,7 +13,7 @@
 ## Источники
 
 - Проект постановления ППТЛО (ДГП, план «Функционально-планировочная организация территории», листы 1–11, планируемая проезжая часть) — <https://www.mos.ru/dgp/anticorruption/antikorruptcionnaia-ekspertiza/view/22084221/>
-- ПП №3320-ПП от 23.12.2025 — <https://docs.cntd.ru/document/1315645570>
+- ПП №3320-ПП от 23.12.2025 (2025-12-23) — <https://docs.cntd.ru/document/1315645570>
 
 ---
 *auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*

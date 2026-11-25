@@ -7,13 +7,15 @@
 | Тип | ЖК |
 | Зона | Тушино / Покровское-Стрешнево |
 | Срок (план) | до 2028 |
+| Этажность | 44 эт. |
+| Подземные этажи | да (подземный паркинг / этаж) |
 | Точность геометрии | exact |
 | ID | `stroi:construction-7731` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/7731>
-- cks2941 (2026-11-04) — <https://data.mos.ru/datasets/2941>
+- cks2941 (2024-08-02) — <https://data.mos.ru/datasets/2941>
 
 ---
 *auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*

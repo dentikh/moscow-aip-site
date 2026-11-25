@@ -7,13 +7,14 @@
 | Тип | Школы |
 | Зона | Аминьевское / Очаково (~5 км) |
 | Срок (план) | до 2027 |
+| Этажность | 5 эт. |
 | Точность геометрии | exact |
 | ID | `stroi:construction-9587` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/9587>
-- cks2941 (2026-11-04) — <https://data.mos.ru/datasets/2941>
+- cks2941 (2025-09-19) — <https://data.mos.ru/datasets/2941>
 
 ---
 *auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*

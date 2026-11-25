@@ -162,6 +162,20 @@ function dossierUrl(props) {
   return "../dossier/index.md";
 }
 
+function floorsRow(props) {
+  const parts = [];
+  if (props.floors != null && props.floors !== "") {
+    parts.push(`этажность: ${escapeHtml(String(props.floors))} эт.`);
+  }
+  if (typeof props.underground === "number" && props.underground > 0) {
+    parts.push(`подземных этажей: ${escapeHtml(String(props.underground))}`);
+  } else if (props.underground === true) {
+    parts.push("подземный паркинг / этаж");
+  }
+  if (!parts.length) return "";
+  return `<div class="popup-row">🏢 ${parts.join(" · ")}</div>`;
+}
+
 function popupHtml(f) {
   const props = f.properties;
   const year = deadlineLabel(props.plan_years);
@@ -189,6 +203,7 @@ function popupHtml(f) {
     `<div class="popup-row">статус: ${escapeHtml(STATUS_LABELS[props.status] || props.status)}` +
     `${year ? ` · срок: ${escapeHtml(year)}` : ""}</div>` +
     `<div class="popup-row">район: ${escapeHtml(featureLocationLabel(props))} · тип: ${escapeHtml(KIND_LABELS[props.kind] || props.kind)}</div>` +
+    floorsRow(props) +
     geometryRow(f) +
     issuesBlock(props) +
     (vest || "") +

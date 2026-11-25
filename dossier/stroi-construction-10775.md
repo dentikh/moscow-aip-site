@@ -7,13 +7,14 @@
 | Тип | ЖК |
 | Зона | Тушино / Покровское-Стрешнево |
 | Срок (план) | до 2027 |
+| Этажность | 58 эт. |
 | Точность геометрии | exact |
 | ID | `stroi:construction-10775` |
 
 ## Источники
 
 - stroi (2026-10-03) — <https://stroi.mos.ru/construction/10775>
-- cks2941 (2026-11-04) — <https://data.mos.ru/datasets/2941>
+- cks2941 (2026-01-30) — <https://data.mos.ru/datasets/2941>
 
 ---
 *auto-generated 2026-11-25 · build_dossier.py · источник: dist/objects.geojson*
